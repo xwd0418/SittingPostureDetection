@@ -1,16 +1,39 @@
+#include <Arduino_LSM9DS1.h>
+
+float pitch, roll;
+
 void setup() {
     Serial.begin(115200);
     while (!Serial);
+    
+    if (!IMU.begin()) {
+        Serial.println("Failed to initialize IMU!");
+        while (1);
+    }
+    
+    Serial.println("IMU initialized");
 }
 
 void loop() {
-    int tilt_value = analogRead(A0);
-    int shock_value = analogRead(A1);
+    float accX, accY, accZ;
 
-    Serial.print("Tilt: ");
-    Serial.print(tilt_value);
-    Serial.print(", Shock: ");
-    Serial.println(shock_value);
+    if (IMU.accelerationAvailable()) {
+        IMU.readAcceleration(accX, accY, accZ);
+        
+        // Calculate pitch and roll from accelerometer data
+        pitch = atan2(accX, sqrt(accY * accY + accZ * accZ)) * 180.0 / PI;
+        // Roll is calculated using the Y and Z axes
+        roll = atan2(accY, sqrt(accX * accX + accZ * accZ)) * 180.0 / PI;
 
-    delay(1000);
+        Serial.print("Pitch: ");
+        Serial.print(pitch);
+        Serial.print("\t Roll: ");
+        Serial.println(roll);
+
+        if (abs(pitch) > 15 || abs(roll) > 30) {
+            Serial.println("Warning: Bad posture detected!");
+        }
+    }
+
+    delay(20000);
 }
