@@ -1,0 +1,1 @@
+This folder is mainly used to collect data from tilt switch and BLE sense to determine good/bad sitting posture.
