@@ -1,6 +1,6 @@
 #include <Arduino_LSM9DS1.h>
 
-float pitch, roll;
+float pitch, roll, tilt;
 
 void setup() {
     Serial.begin(115200);
@@ -25,15 +25,20 @@ void loop() {
         // Roll is calculated using the Y and Z axes
         roll = atan2(accY, sqrt(accX * accX + accZ * accZ)) * 180.0 / PI;
 
-        Serial.print("Pitch: ");
-        Serial.print(pitch);
-        Serial.print("\t Roll: ");
-        Serial.println(roll);
+        tilt = atan2(accZ, sqrt(accX * accX + accZ * accZ)) * 180.0 / PI;
 
-        if (abs(pitch) > 15 || abs(roll) > 30) {
-            Serial.println("Warning: Bad posture detected!");
-        }
+        // Serial.print("Pitch: ");
+        // Serial.print(pitch);
+        // Serial.print("\t Roll: ");
+        // Serial.println(roll);
+        float imuData[3] = {pitch, roll, tilt};
+        Serial.write((uint8_t*)imuData, sizeof(imuData));  // Send raw binary data
+
+        
+        // if (abs(pitch) > 15 || abs(roll) > 30) {
+        //     Serial.println("Warning: Bad posture detected!");
+        // }
     }
 
-    delay(20000);
+    delay(1000);
 }
