@@ -10,6 +10,10 @@ pip install pyserial
 ## Arduino CLI
 In In /arduino/ directory:
 
+```
+export PATH=$PATH:/home/xw0418/cse237A/SittingPostureDetection/arduino/bin/
+```
+
 Arduino compile command:
 ```
 arduino-cli compile --fqbn arduino:mbed_nano:nano33ble .

@@ -1,9 +1,22 @@
 from gpiozero import PWMLED
+# from rpi_lcd import PWMLED
 import time
+
+# import RPi.GPIO as GPIO
+# # from gpiozero.pins.pigpio import PiGPIOFactory
+# GPIO.setmode(GPIO.BCM)
+# for i in (22, 23, 24):
+# 	GPIO.setup(i, GPIO.OUT)
+# 	GPIO.output(i, GPIO.HIGH)
+# 	time.sleep(3.0)
+# 	GPIO.output(i, GPIO.LOW)
+# exit(0)
 
 # # PWMLED instances for each LED
 led_red = PWMLED(24)
 led_green = PWMLED(23)
+# led_red = PWMLED("GPIO5")
+# led_green = PWMLED("GPIO4")
 
 # This function generates the actual color
 # The color intensity can be changed using the respective color variable

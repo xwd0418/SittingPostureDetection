@@ -21,7 +21,7 @@ def collect_data(posture_type):
         # Collect data from the sensors
         data = arduino_sensor.read_data()
         if data is not None:
-            collected_data.append(data)
+            collected_data.append(data[:3])
             pbar.update(1)
     pbar.close()
     return np.array(collected_data)

@@ -31,7 +31,7 @@ void loop() {
         // Serial.print(pitch);
         // Serial.print("\t Roll: ");
         // Serial.println(roll);
-        float imuData[3] = {pitch, roll, tilt};
+        float imuData[6] = {pitch, roll, tilt, accX, accY, accZ};
         Serial.write((uint8_t*)imuData, sizeof(imuData));  // Send raw binary data
 
         
@@ -40,5 +40,5 @@ void loop() {
         // }
     }
 
-    delay(1000);
+    delay(150);
 }
