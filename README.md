@@ -23,3 +23,20 @@ Arduino upload command:
 ```
 arduino-cli upload -p /dev/ttyACM0 --fqbn arduino:mbed_nano:nano33ble .
 ```
+
+## Connect Raspberry Pi and Amazon Echo via Bluetooth
+```
+sudo apt-get install pulseaudio pulseaudio-module-bluetooth pavucontrol bluez
+```
+
+## Text-to-Speech
+```
+sudo apt-get install espeak
+espeak "hello"
+```
+
+Or use the `gTTS` library:
+```
+pip install gTTS
+sudo apt-get install mpg123
+```
