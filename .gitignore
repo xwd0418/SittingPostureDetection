@@ -1,3 +1,8 @@
 data/dataset
 arduino/bin
 *pyc
+
+aws/certs/
+*.pem
+*.key
+*.crt
