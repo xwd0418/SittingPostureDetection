@@ -4,13 +4,15 @@ import RPi.GPIO as GPIO
 sys.path.append('/home/xw0418/venv/lib/python3.11/site-packages')
 import os  # For speaker sound execution
 
-
 from sensors.arduinonNano33BleSense import arduino_sensor  
 from sensors.sonar import sonar_sensor
 # from sensors.motion_sensor import motion_sensor
 from sensors.LED import led_red, led_green, led_light_control
 # from sensors.speaker import speaker
 # 
+from utils.utils import recorder
+posture_recorder = recorder("/home/xw0418/cse237A/SittingPostureDetection/data/audio/posture_alert.mp3", 6)
+distance_recorder = recorder("/home/xw0418/cse237A/SittingPostureDetection/data/audio/distance_alert.mp3", 30)
 
 SLEEP_TIME = 0.1  # 0.1 second
 
@@ -18,11 +20,13 @@ SLEEP_TIME = 0.1  # 0.1 second
 shared_data = {
     "bad_sitting_status": 0,  # should be a float number from 0 to 1. 1 means bad, 0 mean good
     "bad_desk_distance": 0,
-    "prolonged_inactivity": 0,    # 0 means ok, 1 means prolonged inactivity
-    "no_leg_motion": 0,  # 0 means ok, 1 means no leg motion
+    # "prolonged_inactivity": 0,    # 0 means ok, 1 means prolonged inactivity
+    # "no_leg_motion": 0,  # 0 means ok, 1 means no leg motion
     "user_stands_up": 0  # 0 means user is sitting, 1 means user stands up
 }
 data_lock = threading.Lock()
+
+
 
 # **Thread 1: Arduino BLR Sitting Position Check**
 def sitting_position_monitor():
@@ -35,6 +39,10 @@ def sitting_position_monitor():
             shared_data["user_stands_up"] = arduino_sensor.standing
             # print(f"Sitting Status: {bad_sitting_status}")
         # time.sleep(SLEEP_TIME)
+        posture_recorder.record(1 if shared_data["bad_sitting_status"] else 0)
+        with data_lock:
+            print(posture_recorder.data, posture_recorder.curr_sum)
+            posture_recorder.check()
 
 # **Thread 2: Shock Sensor (Seat Departure Detection)**
 def sonar_monitor():
@@ -48,6 +56,9 @@ def sonar_monitor():
 
         with data_lock:
             shared_data["bad_desk_distance"] = bad_desk_distance
+        # distance_recorder.record(1 if bad_desk_distance else 0)
+        # with data_lock:
+        #     distance_recorder.check()
         time.sleep(0.2)
 
 # # **Thread 3: Motion Sensor (Leg Movement Check)**
