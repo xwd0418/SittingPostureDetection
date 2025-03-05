@@ -27,7 +27,7 @@ class AduinoSense:
 
         if len(data) == byte_size:  # Ensure we received the expected number of bytes
             pitch, roll, tilt, accX, accY, accZ = struct.unpack('ffffff', data)
-            print(f"Pitch: {pitch:.2f}, Roll: {roll:.2f}, Tilt: {tilt:.2f}")
+            # print(f"Pitch: {pitch:.2f}, Roll: {roll:.2f}, Tilt: {tilt:.2f}")
             if -180<pitch<180 and -180<roll<180 and -180<tilt<180:
                 return pitch, roll, tilt, accX, accY, accZ
         return None

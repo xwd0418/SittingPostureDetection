@@ -11,8 +11,6 @@ from sensors.LED import led_red, led_green, led_light_control
 # from sensors.speaker import speaker
 # 
 from utils.utils import recorder
-posture_recorder = recorder("/home/xw0418/cse237A/SittingPostureDetection/data/audio/posture_alert.mp3", 6)
-distance_recorder = recorder("/home/xw0418/cse237A/SittingPostureDetection/data/audio/distance_alert.mp3", 30)
 
 SLEEP_TIME = 0.1  # 0.1 second
 
@@ -22,8 +20,12 @@ shared_data = {
     "bad_desk_distance": 0,
     # "prolonged_inactivity": 0,    # 0 means ok, 1 means prolonged inactivity
     # "no_leg_motion": 0,  # 0 means ok, 1 means no leg motion
-    "user_stands_up": 0  # 0 means user is sitting, 1 means user stands up
+    "user_stands_up": 0 , # 0 means user is sitting, 1 means user stands up
+    "audio_is_playing": False,
+    "audio_finish_time": 0
 }
+posture_recorder = recorder("/home/xw0418/cse237A/SittingPostureDetection/data/audio/posture_alert.mp3", 10, shared_data)
+distance_recorder = recorder("/home/xw0418/cse237A/SittingPostureDetection/data/audio/distance_alert.mp3", 30, shared_data)
 data_lock = threading.Lock()
 
 
@@ -38,15 +40,35 @@ def sitting_position_monitor():
             shared_data["bad_sitting_status"] = max(bad_sitting_status-0.5, 0) #/0.6 
             shared_data["user_stands_up"] = arduino_sensor.standing
             # print(f"Sitting Status: {bad_sitting_status}")
-        # time.sleep(SLEEP_TIME)
+
+        if shared_data['user_stands_up']:
+            posture_recorder.reset()
+            continue
         posture_recorder.record(1 if shared_data["bad_sitting_status"] else 0)
+        
+        if shared_data['audio_is_playing']:
+            if time.time() < shared_data["audio_finish_time"]:
+                posture_recorder.reset()
+                continue
+            else:
+                with data_lock:
+                    shared_data["audio_is_playing"] = False
         with data_lock:
             print(posture_recorder.data, posture_recorder.curr_sum)
-            posture_recorder.check()
+            audio_is_playing = posture_recorder.check()
+            if audio_is_playing:
+                shared_data["audio_finish_time"] = time.time() + 1
+                shared_data["audio_is_playing"] = True
+                posture_recorder.reset()
+            
+                
 
 # **Thread 2: Shock Sensor (Seat Departure Detection)**
 def sonar_monitor():
     while True:
+        if shared_data['user_stands_up']:
+            distance_recorder.reset()
+            continue 
         distance = sonar_sensor.distance
         # print(f"Distance: {distance} cm")
         if distance > 10:
@@ -56,7 +78,23 @@ def sonar_monitor():
 
         with data_lock:
             shared_data["bad_desk_distance"] = bad_desk_distance
-        # distance_recorder.record(1 if bad_desk_distance else 0)
+            
+        distance_recorder.record(1 if bad_desk_distance else 0)
+        if shared_data['audio_is_playing']:
+            if time.time() < shared_data["audio_finish_time"]:
+                distance_recorder.reset()
+                continue
+            else:
+                with data_lock:
+                    shared_data["audio_is_playing"] = False
+        with data_lock:
+            # print(posture_recorder.data, posture_recorder.curr_sum)
+            audio_is_playing = distance_recorder.check()
+            if audio_is_playing:
+                shared_data["audio_is_playing"] = True
+                shared_data["audio_finish_time"] = time.time() + 1
+                distance_recorder.reset()
+                
         # with data_lock:
         #     distance_recorder.check()
         time.sleep(0.2)
