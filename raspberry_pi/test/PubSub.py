@@ -5,8 +5,9 @@ import sys
 import threading
 import time
 import json
-from command_line_utils import CommandLineUtils
-from posture_data import PostureData
+from pathlib import Path
+# sys.path.append(str(Path(__file__).parent.parent.parent))
+from test.command_line_utils import CommandLineUtils
 
 # This sample uses the Message Broker for AWS IoT to send and receive messages
 # through an MQTT connection. On startup, the device connects to the server,
@@ -71,7 +72,8 @@ def on_connection_failure(connection, callback_data):
 def on_connection_closed(connection, callback_data):
     print("Connection closed")
 
-if __name__ == '__main__':
+
+def init_mqtt():
     # Create the proxy options if the data is present in cmdData
     proxy_options = None
     if cmdData.input_proxy_host is not None and cmdData.input_proxy_port != 0:
@@ -81,7 +83,7 @@ if __name__ == '__main__':
 
     # Create a MQTT connection from the command line data
     mqtt_connection = mqtt_connection_builder.mtls_from_path(
-        endpoint=cmdData.input_endpoint,
+        endpoint="a30qk10pdxnqon-ats.iot.us-west-2.amazonaws.com",
         port=cmdData.input_port,
         cert_filepath=cmdData.input_cert,
         pri_key_filepath=cmdData.input_key,
@@ -96,10 +98,7 @@ if __name__ == '__main__':
         on_connection_failure=on_connection_failure,
         on_connection_closed=on_connection_closed)
 
-    if not cmdData.input_is_ci:
-        print(f"Connecting to {cmdData.input_endpoint} with client ID '{cmdData.input_clientId}'...")
-    else:
-        print("Connecting to endpoint with client ID")
+
     connect_future = mqtt_connection.connect()
 
     # Future.result() waits until a result is available
@@ -119,43 +118,22 @@ if __name__ == '__main__':
 
     subscribe_result = subscribe_future.result()
     print("Subscribed with {}".format(str(subscribe_result['qos'])))
+    return mqtt_connection, message_count, message_topic, message_string
     
-    sample_data = PostureData()
-    sample_data_json = sample_data.to_json()
-    message_string = sample_data_json
-    # message_string = "Hello World! This is a test message from the Raspberry Pi device."
+if __name__ == '__main__':
+    
+    mqtt_connection, message_count, message_topic, message_string = init_mqtt()
+    sample_data = {"hi":1}
+    sample_data_json = json.dumps(sample_data, indent=4)
 
-    # Publish message to server desired number of times.
-    # This step is skipped if message is blank.
-    # This step loops forever if count was set to 0.
     if message_string:
-        if message_count == 0:
-            print("Sending messages until program killed")
-        else:
-            print("Sending {} message(s)".format(message_count))
-
         publish_count = 1
         while (publish_count <= message_count) or (message_count == 0):
-            message = "{} [{}]".format(message_string, publish_count)
-            print("Publishing message to topic '{}': {}".format(message_topic, message))
-            message_json = json.dumps(message)
             mqtt_connection.publish(
                 topic=message_topic,
-                payload=message_json,
+                payload=sample_data_json,
                 qos=mqtt.QoS.AT_LEAST_ONCE)
             time.sleep(2)
             publish_count += 1
 
-    # Wait for all messages to be received.
-    # This waits forever if count was set to 0.
-    if message_count != 0 and not received_all_event.is_set():
-        print("Waiting for all messages to be received...")
-
-    received_all_event.wait()
-    print("{} message(s) received.".format(received_count))
-
-    # Disconnect
-    print("Disconnecting...")
-    disconnect_future = mqtt_connection.disconnect()
-    disconnect_future.result()
-    print("Disconnected!")
+   

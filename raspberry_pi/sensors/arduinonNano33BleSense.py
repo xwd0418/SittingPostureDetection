@@ -75,9 +75,10 @@ class AduinoSense:
                 #     print(f"Maxima detected")
                 # elif delta > 0.1 and old_delta < -0.1:
                 #     print(f"Minima detected")
-                if abs(self.old_delta-delta) > 0.5:
+                if abs(self.old_delta-delta) > 0.8:
                     self.standing = not self.standing
                     print(f"{self.standing=}")
+                    print("detected", self.old_delta, delta)
                     self.dont_change_until = time.time() + 5
             self.old_delta = delta
         self.old_accX = accX

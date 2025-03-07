@@ -15,8 +15,8 @@ echo "Starting Sitting Posture Detection..."
 python3 ./raspberry_pi/test/PubSub.py \
     --endpoint $AWS_IOT_ENDPOINT \
     --ca_file ./aws/certs/root-CA.crt \
-    --cert ./aws/certs/postureDetection.cert.pem \
-    --key ./aws/certs/postureDetection.private.key \
+    --cert ./aws/certs/demoPostureDetection.cert.pem \
+    --key ./aws/certs/demoPostureDetection.private.key \
     --client_id basicPubSub \
     --count 0 \
     --topic sdk/test/python

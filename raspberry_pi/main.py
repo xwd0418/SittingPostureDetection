@@ -11,11 +11,14 @@ from sensors.LED import led_red, led_green, led_light_control
 # from sensors.speaker import speaker
 # 
 from utils.utils import recorder
+from test.PubSub import init_mqtt
+mqtt_connection, message_count, message_topic, message_string = init_mqtt()
+publish_count = 1
 
-SLEEP_TIME = 0.1  # 0.1 second
 
 # Shared Variables with Thread Lock
 shared_data = {
+    "device_id": "Raspberry Pi",
     "bad_sitting_status": 0,  # should be a float number from 0 to 1. 1 means bad, 0 mean good
     "bad_desk_distance": 0,
     # "prolonged_inactivity": 0,    # 0 means ok, 1 means prolonged inactivity
@@ -24,8 +27,8 @@ shared_data = {
     "audio_is_playing": False,
     "audio_finish_time": 0
 }
-posture_recorder = recorder("/home/xw0418/cse237A/SittingPostureDetection/data/audio/posture_alert.mp3", 10, shared_data)
-distance_recorder = recorder("/home/xw0418/cse237A/SittingPostureDetection/data/audio/distance_alert.mp3", 30, shared_data)
+posture_recorder = recorder("/home/xw0418/cse237A/SittingPostureDetection/data/audio/posture_alert.mp3", 15, shared_data)
+distance_recorder = recorder("/home/xw0418/cse237A/SittingPostureDetection/data/audio/distance_alert.mp3", 15, shared_data)
 data_lock = threading.Lock()
 
 
@@ -53,9 +56,12 @@ def sitting_position_monitor():
             else:
                 with data_lock:
                     shared_data["audio_is_playing"] = False
+            
+        audio_is_playing = posture_recorder.check()
+        
         with data_lock:
-            print(posture_recorder.data, posture_recorder.curr_sum)
-            audio_is_playing = posture_recorder.check()
+            if shared_data["bad_sitting_status"]:
+                print("posture data: ", posture_recorder.data, posture_recorder.curr_sum)
             if audio_is_playing:
                 shared_data["audio_finish_time"] = time.time() + 1
                 shared_data["audio_is_playing"] = True
@@ -87,9 +93,12 @@ def sonar_monitor():
             else:
                 with data_lock:
                     shared_data["audio_is_playing"] = False
+        
+        audio_is_playing = distance_recorder.check()
         with data_lock:
+            if shared_data["bad_desk_distance"]:
+                print("distance data: ", distance_recorder.data, distance_recorder.curr_sum)
             # print(posture_recorder.data, posture_recorder.curr_sum)
-            audio_is_playing = distance_recorder.check()
             if audio_is_playing:
                 shared_data["audio_is_playing"] = True
                 shared_data["audio_finish_time"] = time.time() + 1
@@ -121,19 +130,14 @@ def led_control():
         else: # Bad sitting position
             led_green.off()
             led_light_control(bad_sitting_status, bad_desk_distance, None) #red for tilted back, and green for sitting too close
-        time.sleep(0.2)
+        time.sleep(0.1)
 
-# **Thread 5: Speaker Alert**
-def speaker_alert():
-    while True:
-        with data_lock:
-            if shared_data["bad_sitting_status"] == "Incorrect":
-                os.system("aplay alert_sound.wav")  # Replace with actual sound file
-        time.sleep(SLEEP_TIME)  # Avoid continuous sound spam
+from awscrt import mqtt, http
 
 
 # **Main Function**
 def main():
+    
     try:
         # Create threads
         threads = [
@@ -141,7 +145,6 @@ def main():
             threading.Thread(target=sonar_monitor),
             # threading.Thread(target=motion_sensor_monitor),
             threading.Thread(target=led_control),
-            # threading.Thread(target=speaker_alert)
         ]
 
         # Start threads
@@ -149,8 +152,21 @@ def main():
             thread.daemon = True  # Ensures threads stop when the main program exits
             thread.start()
 
-        while True:
-            time.sleep(1)  # Keep the main program running
+        mqtt_connection, message_count, message_topic, message_string = init_mqtt()
+        import json
+        # sample_data = {"hi":1}
+        # sample_data_json = json.dumps(sample_data, indent=4)
+
+        if message_string:
+            publish_count = 1
+            while (publish_count <= message_count) or (message_count == 0):
+                mqtt_connection.publish(
+                    topic=message_topic,
+                    payload=json.dumps(shared_data, indent=4)
+,
+                    qos=mqtt.QoS.AT_LEAST_ONCE)
+                time.sleep(10)
+                publish_count += 1
 
     except KeyboardInterrupt:
         print("Exiting program...")
@@ -159,3 +175,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
